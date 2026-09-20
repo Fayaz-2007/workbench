@@ -1,0 +1,41 @@
+# Sovereign AI Workbench — backend dependencies
+#
+# Segment 2 established the FastAPI/agent/router skeleton. Segment 3 turns
+# it into a real local platform: real local inference (Ollama, via plain
+# HTTP — no SDK needed), local RAG (ChromaDB + local embeddings), document
+# ingestion/generation, OCR, and a real Data Agent. Still no cloud AI SDKs
+# of any kind — every one of these talks only to localhost or the
+# filesystem.
+
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.10.4
+pydantic-settings==2.7.1
+python-dotenv==1.0.1
+python-multipart==0.0.20
+
+# Local inference (Ollama) — plain HTTP via httpx, no cloud SDK
+httpx==0.28.1
+
+# RAG: local vector store + document ingestion
+chromadb==1.5.9
+pypdf==5.1.0
+python-docx==1.1.2
+openpyxl==3.1.5
+
+# OCR (local; gracefully reports unavailable if the tesseract binary isn't installed)
+pytesseract==0.3.13
+Pillow==11.0.0
+
+# Data Agent: deterministic calculations, not left to the LLM
+pandas==2.2.3
+
+# Document generation deliverables
+fpdf2==2.8.2
+
+# Local system/network monitoring (Phase F) — lightweight, pure-Python wheel
+psutil==6.1.1
+
+# Testing
+pytest==8.3.4
+pytest-asyncio==0.25.2

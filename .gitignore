@@ -1,0 +1,82 @@
+# =====================================================================
+# Sovereign AI Workbench — monorepo .gitignore
+# =====================================================================
+
+# ---------------------------------------------------------------------
+# Frontend (Node / Vite)
+# ---------------------------------------------------------------------
+node_modules
+frontend/node_modules
+frontend/dist
+frontend/dist-ssr
+*.local
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ---------------------------------------------------------------------
+# Backend (Python)
+# ---------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+backend/.venv/
+backend/venv/
+
+# Backend runtime data (documents, uploads, generated deliverables, vector store)
+# Directory structure is tracked via .gitkeep files; contents are not.
+backend/data/documents/*
+!backend/data/documents/.gitkeep
+backend/data/uploads/*
+!backend/data/uploads/.gitkeep
+backend/data/generated/*
+!backend/data/generated/.gitkeep
+backend/data/chroma/*
+!backend/data/chroma/.gitkeep
+
+# ---------------------------------------------------------------------
+# Local AI models — never commit model weights
+# ---------------------------------------------------------------------
+models/**/*.gguf
+models/**/*.bin
+models/**/*.safetensors
+models/**/*.pt
+models/**/*.onnx
+models/weights/
+models/cache/
+
+# ---------------------------------------------------------------------
+# Environment files / secrets
+# ---------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+!*/.env.example
+
+# ---------------------------------------------------------------------
+# Editor / OS
+# ---------------------------------------------------------------------
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

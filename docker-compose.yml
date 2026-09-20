@@ -1,0 +1,37 @@
+# Sovereign AI Workbench — development compose file (placeholder)
+#
+# This is NOT required to run the project today. The frontend runs with
+# `npm run dev` inside frontend/, and the backend runs with `uvicorn` inside
+# backend/ (see each package's README). This file exists so future segments
+# have a place to add real services (backend, vector store, etc.) without
+# restructuring the repo again.
+#
+# Nothing here is wired up yet — no local model runtime, no vector database,
+# no reverse proxy. Those are added as the segments that need them land.
+
+services:
+  backend:
+    build:
+      context: ./backend
+    # No Dockerfile exists yet — this is a placeholder for when the backend
+    # is containerized in a later segment.
+    profiles: ["backend"]
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./backend:/app
+      - ./models:/models:ro
+
+  frontend:
+    build:
+      context: ./frontend
+    # No Dockerfile exists yet — the frontend is run directly with npm
+    # during development. This is a placeholder for a future static build
+    # / preview container.
+    profiles: ["frontend"]
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_BASE_URL: http://192.168.50.1:8000
