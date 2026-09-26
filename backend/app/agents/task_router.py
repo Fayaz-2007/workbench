@@ -29,10 +29,12 @@ from typing import Literal
 from app.agents.base import AttachmentRef
 from app.agents.manager import AgentManager
 from app.core.logging import get_logger, log_event
+from app.services.conversation_export.intent import is_export_request
 
 logger = get_logger(__name__)
 
 RoutingTarget = Literal["agent", "system_monitor", "network_monitor", "security_status", "orchestrator"]
+RoutingAction = Literal["respond", "export_conversation"]
 
 _FALLBACK_AGENT_ID = "general"
 _CONFIDENCE_FLOOR = 0.15
@@ -102,6 +104,13 @@ class TaskRoutingResult:
     agent_id: str  # meaningful when target == "agent"; "general" otherwise (for AgentSummary display)
     reason: str
     confidence: float
+    # "respond" (default) runs the agent's normal generation pipeline;
+    # "export_conversation" tells the chat route to run the conversation
+    # export pipeline instead (see app/services/conversation_export) —
+    # still dispatched through the Document Agent's identity/display, but a
+    # completely different execution path. Kept off `RoutingTarget` itself
+    # since it's orthogonal to *which* agent was picked.
+    action: RoutingAction = "respond"
 
 
 class TaskRouter:
@@ -126,6 +135,15 @@ class TaskRouter:
             return self._finish("security_status", _FALLBACK_AGENT_ID, "The request asks about data sovereignty/security status.", 0.85)
 
         registered_ids = {a.id for a in self._agent_manager.list()}
+
+        if "document" in registered_ids and is_export_request(message):
+            return self._finish(
+                "agent",
+                "document",
+                "The request asks to export this conversation as a document.",
+                0.9,
+                action="export_conversation",
+            )
 
         # Attachment file type — strongest, deterministic signal for agent selection.
         for attachment in attachments:
@@ -167,7 +185,9 @@ class TaskRouter:
 
         return self._finish("agent", best_agent_id, _REASONS.get(best_agent_id, _REASONS["general"]), min(best_score, 1.0))
 
-    def _finish(self, target: RoutingTarget, agent_id: str, reason: str, confidence: float) -> TaskRoutingResult:
+    def _finish(
+        self, target: RoutingTarget, agent_id: str, reason: str, confidence: float, action: RoutingAction = "respond"
+    ) -> TaskRoutingResult:
         confidence = round(confidence, 3)
-        log_event(logger, "task_routed", target=target, agent_id=agent_id, confidence=confidence)
-        return TaskRoutingResult(target=target, agent_id=agent_id, reason=reason, confidence=confidence)
+        log_event(logger, "task_routed", target=target, agent_id=agent_id, confidence=confidence, action=action)
+        return TaskRoutingResult(target=target, agent_id=agent_id, reason=reason, confidence=confidence, action=action)

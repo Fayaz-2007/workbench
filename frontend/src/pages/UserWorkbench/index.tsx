@@ -79,6 +79,8 @@ export function UserWorkbench() {
           agentId={selectedAgentId}
           attachments={attachments}
           isSending={isSending}
+          conversationId={activeConversationId}
+          messages={messages}
           onAddFiles={addFiles}
           onRemoveAttachment={removeAttachment}
           onSend={handleSend}

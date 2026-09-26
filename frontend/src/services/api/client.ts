@@ -11,7 +11,9 @@ import type {
   ChatMessage,
   Conversation,
   ConversationSummary,
+  Deliverable,
   DocumentSearchResult,
+  ExportFormat,
   KnowledgeDocument,
   ModelInfo,
   ModelStatus,
@@ -201,6 +203,11 @@ interface BackendChatResponse {
 export async function sendMessage(params: SendMessageParams): Promise<ChatMessage> {
   const { conversationId, agentId, text, attachments } = params;
   const conversation = conversationStore.get(conversationId);
+  // Captured before the new user message is pushed below — this is the
+  // conversation's prior history, which only the Task Router's export
+  // intent detection ("generate a document about this", ...) actually
+  // reads; every other agent ignores `conversation_history` entirely.
+  const priorHistory = messagesToHistory(conversation?.messages ?? []);
 
   const userMessage: ChatMessage = {
     id: generateId("msg"),
@@ -231,6 +238,7 @@ export async function sendMessage(params: SendMessageParams): Promise<ChatMessag
         size_bytes: a.sizeBytes,
         path: a.path,
       })),
+      conversation_history: priorHistory,
     }),
   });
 
@@ -282,6 +290,71 @@ export async function sendMessage(params: SendMessageParams): Promise<ChatMessag
   }
 
   return assistantMessage;
+}
+
+// ---------------------------------------------------------------------------
+// Conversation export (DOCX/PPTX/XLSX/PDF — see backend/app/services/
+// conversation_export). There is no server-side conversation store yet
+// (see the comment atop this file), so the frontend's own message history
+// rides along in the request body for both trigger paths — the button
+// below, and (inside `sendMessage()`'s `conversation_history` field) the
+// natural-language "generate a document about this" chat trigger.
+// ---------------------------------------------------------------------------
+
+function messagesToHistory(messages: ChatMessage[]): { role: "user" | "assistant"; text: string; citations: string[] }[] {
+  return messages
+    .filter((m) => m.role === "user" || m.role === "assistant")
+    .map((m) => ({
+      role: m.role as "user" | "assistant",
+      text: m.text ?? m.content?.map((b) => (b.type === "text" ? b.text : "")).join("\n") ?? "",
+      citations: (m.citations ?? []).map((c) => c.label),
+    }));
+}
+
+interface BackendConversationExportResponse {
+  deliverable: { id: string; filename: string; file_type: string; size_bytes: number; status: "ready" | "failed" };
+  execution: { status: string; steps: BackendExecutionStep[] };
+}
+
+export interface ConversationExportResult {
+  deliverable: Deliverable;
+  executionSteps: import("../../types").ExecutionStep[];
+}
+
+/** POST /api/conversations/{id}/export — turns the given messages into a
+ * real, downloadable file. Used by the "Generate Document" button; the
+ * natural-language chat trigger goes through `sendMessage()` -> `/api/chat`
+ * instead, but both ultimately call the same backend pipeline.
+ */
+export async function exportConversation(
+  conversationId: string,
+  format: ExportFormat,
+  messages: ChatMessage[],
+): Promise<ConversationExportResult> {
+  const backendResponse = await request<BackendConversationExportResponse>(
+    `/api/conversations/${encodeURIComponent(conversationId)}/export`,
+    {
+      method: "POST",
+      body: JSON.stringify({ format, messages: messagesToHistory(messages) }),
+    },
+  );
+
+  return {
+    deliverable: {
+      id: backendResponse.deliverable.id,
+      filename: backendResponse.deliverable.filename,
+      fileType: backendResponse.deliverable.file_type,
+      sizeBytes: backendResponse.deliverable.size_bytes,
+      status: backendResponse.deliverable.status,
+      createdAt: new Date().toISOString(),
+    },
+    executionSteps: backendResponse.execution.steps.map((step) => ({
+      id: step.id,
+      title: step.title,
+      status: step.status,
+      detail: step.detail ?? undefined,
+    })),
+  };
 }
 
 // ---------------------------------------------------------------------------

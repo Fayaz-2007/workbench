@@ -3,15 +3,18 @@ import { useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 import { IconButton } from "../common/IconButton";
 import { FileAttachmentChip } from "../files/FileAttachmentChip";
+import { GenerateDocumentButton } from "./GenerateDocumentButton";
 import { ACCEPTED_FILE_EXTENSIONS } from "../../lib/config";
 import { getAgentDisplay } from "../../services/mock/agents";
-import type { AgentSelection, ChatAttachment } from "../../types";
+import type { AgentSelection, ChatAttachment, ChatMessage } from "../../types";
 import { cn } from "../../lib/utils";
 
 export function Composer({
   agentId,
   attachments,
   isSending,
+  conversationId,
+  messages,
   onAddFiles,
   onRemoveAttachment,
   onSend,
@@ -19,6 +22,8 @@ export function Composer({
   agentId: AgentSelection;
   attachments: ChatAttachment[];
   isSending: boolean;
+  conversationId: string | null;
+  messages: ChatMessage[];
   onAddFiles: (files: FileList) => void;
   onRemoveAttachment: (id: string) => void;
   onSend: (text: string) => void;
@@ -55,6 +60,7 @@ export function Composer({
   return (
     <div className="border-t border-neutral-150 bg-neutral-25 px-3 pb-4 pt-3 md:px-6">
       <div className="mx-auto max-w-3xl">
+        <GenerateDocumentButton conversationId={conversationId} messages={messages} />
         <div className="rounded-xl border border-neutral-200 bg-neutral-0 shadow-sm focus-within:border-accent-400 focus-within:ring-2 focus-within:ring-accent-100">
           {attachments.length > 0 && (
             <div className="flex flex-wrap gap-2 border-b border-neutral-100 px-3 pt-3">

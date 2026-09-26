@@ -21,6 +21,7 @@ httpx==0.28.1
 chromadb==1.5.9
 pypdf==5.1.0
 python-docx==1.1.2
+python-pptx==1.0.2
 openpyxl==3.1.5
 
 # OCR (local; gracefully reports unavailable if the tesseract binary isn't installed)

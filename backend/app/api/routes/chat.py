@@ -24,7 +24,7 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, Request
 
 from app.agents import monitor_responses, orchestrator
-from app.agents.base import AgentExecutionResult, AgentTask, AttachmentRef, ExecutionContext
+from app.agents.base import AgentExecutionResult, AgentTask, AttachmentRef, ExecutionContext, ExecutionStatus
 from app.agents.manager import AgentManager
 from app.agents.task_router import TaskRouter
 from app.api.dependencies import (
@@ -44,6 +44,7 @@ from app.mcp_tools import LocalMCPClient
 from app.models.router import ModelRouter
 from app.rag.service import RAGService
 from app.sandbox.base import SandboxProvider
+from app.services.conversation_export import ExportMessage, detect_export_format, export_conversation
 from app.schemas.chat import (
     AgentSummary,
     ChatRequest,
@@ -99,6 +100,38 @@ async def _dispatch_auto(
     return result, agent.id, agent.name
 
 
+async def _dispatch_export_conversation(
+    payload: ChatRequest, context: ExecutionContext, agent_manager: AgentManager
+) -> tuple[AgentExecutionResult, str, str]:
+    """Natural-language trigger for the conversation export pipeline (see
+    `app/services/conversation_export`) — the *same* `export_conversation()`
+    the dedicated `POST /api/conversations/{id}/export` endpoint calls
+    (`app/api/routes/conversations.py`), so there is exactly one place that
+    turns a conversation into a document, however the request arrived.
+    """
+    fmt = detect_export_format(payload.message)
+    history = [
+        ExportMessage(role=m.role, text=m.text, citations=list(m.citations))
+        for m in (payload.conversation_history or [])
+    ]
+    export = await export_conversation(
+        history,
+        fmt,
+        model_router=context.model_router,
+        settings=context.settings,
+        conversation_id=context.conversation_id,
+    )
+    agent = agent_manager.get("document")
+    result = AgentExecutionResult(
+        response_text=export.response_text,
+        routing=export.routing,
+        steps=export.steps,
+        status=ExecutionStatus.COMPLETED,
+        deliverables=[export.deliverable],
+    )
+    return result, agent.id, agent.name
+
+
 @router.post("/chat", response_model=ChatResponse)
 async def send_chat_message(
     payload: ChatRequest,
@@ -139,9 +172,14 @@ async def send_chat_message(
         task_routing_out = TaskRoutingOut(
             target=selection.target, agent_id=selection.agent_id, reason=selection.reason, confidence=selection.confidence
         )
-        result, display_agent_id, display_agent_name = await _dispatch_auto(
-            selection.target, selection.agent_id, task, context, agent_manager, settings, mcp_client
-        )
+        if selection.action == "export_conversation":
+            result, display_agent_id, display_agent_name = await _dispatch_export_conversation(
+                payload, context, agent_manager
+            )
+        else:
+            result, display_agent_id, display_agent_name = await _dispatch_auto(
+                selection.target, selection.agent_id, task, context, agent_manager, settings, mcp_client
+            )
         for step in result.steps:
             if step.id == "selecting_agent" and not step.detail:
                 step.detail = selection.reason

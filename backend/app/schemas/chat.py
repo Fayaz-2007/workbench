@@ -18,6 +18,22 @@ class AttachmentIn(BaseModel):
     path: str | None = None
 
 
+class ConversationMessageIn(BaseModel):
+    """One prior message, as the frontend already holds it client-side —
+    there is no server-side conversation store yet (see
+    `app/database/__init__.py` and `backend/README.md`'s "Intentionally
+    not implemented yet"). Sent only so the natural-language
+    "export this conversation" path (see `app/services/conversation_export`)
+    has something to summarize; every other agent ignores this field
+    entirely, so it changes nothing about today's stateless `/api/chat`
+    behavior.
+    """
+
+    role: Literal["user", "assistant"]
+    text: str = ""
+    citations: list[str] = []
+
+
 class ChatRequest(BaseModel):
     # None (omitted) or the literal "auto" triggers automatic agent
     # selection via the Task Router (see app/agents/task_router.py) —
@@ -28,6 +44,7 @@ class ChatRequest(BaseModel):
     message: str = Field(default="", max_length=8000)
     conversation_id: str | None = None
     attachments: list[AttachmentIn] | None = None
+    conversation_history: list[ConversationMessageIn] | None = None
 
 
 class AgentSummary(BaseModel):

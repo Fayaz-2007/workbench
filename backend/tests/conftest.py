@@ -7,6 +7,12 @@ triggers `app.main`'s lifespan, so each test's RAGService/ChromaDB and
 uploaded/generated files never touch the real `backend/data/` directory
 and never leak between tests (the settings singleton is otherwise shared
 process-wide via `get_settings()`'s `lru_cache`).
+
+It also forces `model_provider`/`embedding_provider`/`vision_model_provider`
+back to "mock", regardless of whatever a developer's local `.env` happens
+to be set to (e.g. `MODEL_PROVIDER=ollama` for real local inference) — the
+suite's pass/fail must never depend on what's running on the host, and
+must never make a real network call to a local Ollama server during tests.
 """
 
 from __future__ import annotations
@@ -26,6 +32,9 @@ def isolate_data_dirs(tmp_path, monkeypatch) -> None:
     monkeypatch.setattr(settings, "documents_dir", str(tmp_path / "documents"))
     monkeypatch.setattr(settings, "generated_dir", str(tmp_path / "generated"))
     monkeypatch.setattr(settings, "chroma_path", str(tmp_path / "chroma"))
+    monkeypatch.setattr(settings, "model_provider", "mock")
+    monkeypatch.setattr(settings, "vision_model_provider", "mock")
+    monkeypatch.setattr(settings, "embedding_provider", "mock")
 
 
 @pytest.fixture

@@ -81,6 +81,12 @@ export interface ChatMessage {
   toolName?: string;
 }
 
+/** Formats the conversation-export pipeline can produce (see
+ * backend/app/services/conversation_export). Kept in sync with the
+ * backend's `ExportFormat` literal.
+ */
+export type ExportFormat = "docx" | "pptx" | "xlsx" | "pdf";
+
 export interface Conversation {
   id: string;
   title: string;
