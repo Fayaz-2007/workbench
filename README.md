@@ -1,137 +1,87 @@
-# Sovereign AI Workbench
+<div align="center">
 
-A self-hosted, air-gapped, multimodal agentic AI workbench for confidential
-industrial work — built for environments like refineries, PSUs,
-defence-linked manufacturing units, and government organizations where data
-cannot leave the organization's own infrastructure.
+![header](https://capsule-render.vercel.app/api?type=waving&color=gradient&height=200&section=header&text=Sovereign%20AI%20Workbench&fontSize=45&fontColor=fff)
 
-## Purpose
+![Typing SVG](https://readme-typing-svg.demolab.com?font=Fira+Code&size=22&pause=1000&color=38BDF8&center=true&vCenter=true&width=700&lines=Self-hosted%2C+air-gapped+agentic+AI+workbench;Zero+external+AI+API+calls+%E2%80%94+ever)
 
-Sovereign AI Workbench gives teams a private alternative to cloud AI
-assistants: the same day-to-day usefulness — chat, document drafting, code
-help, image and data analysis — running entirely on hardware the
-organization controls, with **no external AI API calls** in its final
-deployment.
+![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)
+![Ollama](https://img.shields.io/badge/Ollama-black?style=for-the-badge&logo=ollama&logoColor=white)
+![ChromaDB](https://img.shields.io/badge/ChromaDB-FF6F00?style=for-the-badge)
+![Made By](https://img.shields.io/badge/Made%20by-Fayaz--2007-blueviolet?style=for-the-badge)
 
-## High-level architecture
+</div>
 
+## 📌 Overview
+
+Cloud AI assistants can't be used in environments like refineries, PSUs, defence-linked manufacturing units, and government organizations where data can never leave the organization's own infrastructure. Sovereign AI Workbench gives these teams the same day-to-day usefulness — chat, document drafting, code help, image and data analysis — running entirely on hardware the organization controls, with no external AI API calls in its final deployment. It routes every request through a capability-scoring Model Router to one of five task-oriented agents, backed by local inference, local RAG and real document generation.
+
+## ✨ Features
+
+- 🧠 Five task-oriented agents (General, Code, Document, Vision, Data), each declaring required capabilities — never a model name
+- 🎯 A Model Router that scores every registered, available model against an agent's required capabilities and picks the best fit
+- 🔀 An independent Task Router for Auto mode that decides which agent handles a request
+- 🦙 Local inference via Ollama over plain HTTP — no cloud SDK, no external API calls
+- 📚 Local RAG (ChromaDB + local embeddings) with document ingestion and citations
+- 🔎 Tesseract-backed OCR, honest about what's not wired up yet
+- 🧰 Seven local tools behind a Tool Registry, plus sandboxed Python execution with a bounded generate → run → verify → revise loop
+- 📄 Real deliverable generation — DOCX, XLSX, PDF and Markdown — handed back through the browser client
+
+## 🛠️ Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | ![React](https://img.shields.io/badge/React%2019-20232A?style=flat-square&logo=react&logoColor=61DAFB) ![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat-square&logo=vite&logoColor=white) ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white) ![TailwindCSS](https://img.shields.io/badge/TailwindCSS-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white) |
+| Backend | ![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white) ![Pydantic](https://img.shields.io/badge/Pydantic-E92063?style=flat-square&logo=pydantic&logoColor=white) |
+| Local inference | ![Ollama](https://img.shields.io/badge/Ollama-black?style=flat-square&logo=ollama&logoColor=white) via httpx |
+| RAG / documents | ![ChromaDB](https://img.shields.io/badge/ChromaDB-FF6F00?style=flat-square) pypdf · python-docx · python-pptx · openpyxl · fpdf2 |
+| OCR / Data | pytesseract · Pillow · pandas |
+
+## 🏗️ Architecture
+
+```mermaid
+flowchart TD
+    UI[Browser Client\nfrontend/] --> API[FastAPI Backend\nbackend/]
+    API --> AM[Agent Manager]
+    AM --> AG[Selected Agent\nGeneral · Code · Document · Vision · Data]
+    AG -->|declares capabilities| MR[Model Router]
+    MR --> LMP[Local Model Provider\nOllama / mock]
+    AG --> RAG[Local RAG\nChromaDB]
+    AG --> TOOLS[Tool Registry + Sandbox]
+    AG --> DOC[Document Generation]
+    LMP --> AG
+    AG --> API
+    API --> UI
 ```
-   Browser Client
-        │
-        ▼
-  FastAPI Backend
-        │
-        ▼
-   Agent Manager
-        │
-        ▼
-   Selected Agent  (General · Code · Document · Vision · Data)
-        │              declares required capabilities, never a model name
-        ▼
-   Model Router  ── scores every approved, available model
-        │
-        ▼
-Local Model Provider  (mock today — see models/README.md)
-        │
-        ▼
-   Agent Execution
-        │
-        ▼
-      Response
-        │
-        ▼
-   Browser Client
-```
 
-- **Browser Client** — the frontend in [`frontend/`](frontend/): the chat
-  interface, agent selection, file upload, and admin dashboard. UI only; no
-  business logic or model access.
-- **FastAPI Backend** — the service in [`backend/`](backend/): owns business
-  logic, request handling, and orchestration. This is the only layer the
-  frontend talks to.
-- **Agent Manager** — turns an `agent_id` from the frontend into a
-  concrete agent and runs it (`backend/app/agents/manager.py`).
-- **Selected Agent** — task-oriented behavior (General, Code, Document,
-  Vision, Data), each declaring the *capabilities* it needs — never a
-  model name (`backend/app/agents/`).
-- **Model Router** — scores every registered, available model against the
-  agent's required capabilities and picks the best fit; an internal
-  routing score, not a benchmark (`backend/app/models/router.py`).
-- **Local Model Provider** — the inference abstraction models run through.
-  A metadata-labeled mock (`.../providers/local.py`) and a real provider
-  backed by [Ollama](https://ollama.com) (`.../providers/ollama.py`) both
-  exist today, behind the same interface — llama.cpp/vLLM can be added the
-  same way, without touching agents or the router. Real weights live
-  outside Git on the organization's server (see [`models/`](models/)).
-- **Deliverables** — real generated files (DOCX/XLSX/PDF/Markdown), written
-  locally and handed back to the user through the browser client (see
-  `backend/app/tools/document_generation.py`).
-
-This repository is organized so each layer can be developed and deployed
-independently:
-
-| Layer | Responsibility | Location |
-|---|---|---|
-| Frontend | User interface only | [`frontend/`](frontend/) |
-| Backend | Business logic and AI orchestration | [`backend/`](backend/) |
-| Agents | Task-oriented behavior, capability-declared | `backend/app/agents/` |
-| Model Registry / Router | Model metadata + selection scoring | `backend/app/models/` |
-| Local Models | Inference | [`models/`](models/) |
-| RAG | Local knowledge retrieval | `backend/app/rag/` |
-| Tools | File/document/data operations | `backend/app/tools/` |
-| Sandbox | Isolated code execution | `backend/app/sandbox/` |
-| Security | Network monitoring, audit logging, access control | `backend/app/security/` |
-
-## Project status
-
-This repository currently contains:
-
-- **Segment 1 (complete):** the frontend client/user-experience layer —
-  User Workbench, Admin Dashboard shell, agent selection, chat, file
-  upload UI, execution-progress UI, deliverable UI, and a stable API
-  abstraction.
-- **Segment 2 (complete):** the AI core / orchestration backend — FastAPI,
-  five agents, a Model Registry, and a capability-scoring Model Router,
-  proven correct behind a mock provider.
-- **Segment 3 (complete):** the mock provider became real, and the system
-  gained automatic task routing. Local inference via Ollama, a **Task
-  Router** for Auto mode (kept strictly independent from the Model
-  Router — see below), local RAG (ChromaDB + local embeddings) with
-  document ingestion and citations, OCR (Tesseract-backed, honest about
-  what's not wired up yet), seven local tools behind a Tool Registry,
-  sandboxed Python execution with a bounded generate → run → verify →
-  revise loop, and real deliverable generation (DOCX/XLSX/PDF/Markdown) —
-  all running on the 4c/8t, ~12GB-RAM, no-GPU dev machine this project
-  targets. See [`backend/README.md`](backend/README.md) for the full
-  architecture and what's honestly still mock (Vision Agent — no local
-  vision model is installed yet) or deferred.
-
-**Task Router vs. Model Router** — two independent decisions, never
-conflated: the Task Router (Auto mode only) decides *which agent*
-handles a request; the Model Router (every request) decides *which
-model* that agent uses.
-
-Real authentication, network/system/audit telemetry, external API
-integrations, and a container-backed sandbox are **not implemented yet** —
-they belong to a later segment. The Admin Network, System, and Audit Logs
-pages still show frontend mock data accordingly.
-
-## Repository layout
+## 📂 Project Structure
 
 ```
 sovereign-ai-workbench/
-├── frontend/     # React + Vite + TypeScript + Tailwind client
-├── backend/      # FastAPI service (structural foundation only)
-├── models/       # Local model docs/config — weights are never committed
-├── docs/         # Architecture and deployment documentation
-├── scripts/      # Setup/deployment/helper scripts (added as needed)
-├── docker-compose.yml
-└── README.md
+├── frontend/              # React + Vite + TypeScript + Tailwind client
+├── backend/
+│   ├── app/
+│   │   ├── agents/        # General, Code, Document, Vision, Data
+│   │   ├── models/        # Model registry + router
+│   │   ├── rag/           # ChromaDB-backed retrieval
+│   │   ├── tools/         # File/document/data operations
+│   │   ├── sandbox/       # Isolated code execution
+│   │   └── security/      # Network monitoring, audit logging
+│   └── requirements.txt
+├── models/                # Local model docs/config — weights never committed
+├── docs/                  # Architecture and deployment documentation
+├── scripts/
+└── docker-compose.yml
 ```
 
-## Running the project
+## ⚙️ Installation
 
-### Frontend
+```bash
+git clone https://github.com/Fayaz-2007/workbench.git
+cd workbench
+```
+
+**Frontend**
 
 ```bash
 cd frontend
@@ -139,15 +89,9 @@ npm install
 npm run dev
 ```
 
-Visit `http://localhost:5173/` (User Workbench) and
-`http://localhost:5173/admin` (Admin Dashboard). The dev server binds to
-all interfaces, so it's also reachable at `http://SERVER-IP:5173` from
-another machine on the same LAN.
+Visit `http://localhost:5173/` (User Workbench) and `http://localhost:5173/admin` (Admin Dashboard).
 
-See [`frontend/`](frontend/) for the frontend's API base URL configuration
-(`VITE_API_BASE_URL`).
-
-### Backend
+**Backend**
 
 ```bash
 cd backend
@@ -158,36 +102,44 @@ copy .env.example .env
 python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-Runs fully offline against the mock provider by default. For real local
-inference and RAG, install [Ollama](https://ollama.com), pull
-`qwen2.5:1.5b-instruct` and `nomic-embed-text`, and set
-`MODEL_PROVIDER=ollama` / `EMBEDDING_PROVIDER=ollama` in `.env`.
+Runs fully offline against the mock provider by default. For real local inference and RAG, install Ollama, pull `qwen2.5:1.5b-instruct` and `nomic-embed-text`, and set `MODEL_PROVIDER=ollama` / `EMBEDDING_PROVIDER=ollama` in `.env`.
 
-Binding to `0.0.0.0` makes the API reachable from another machine on the
-LAN once the frontend's `VITE_API_BASE_URL` points at this server's IP
-(e.g. `http://SERVER-IP:8000`) — the client machine needs neither Python
-nor any model installed. See [`backend/README.md`](backend/README.md) for
-the full endpoint list and architecture.
+### Environment variables
 
-## Design principles
+| Variable | Description |
+|---|---|
+| `MODEL_PROVIDER` | `mock` (default, offline) or `ollama` for real local inference |
+| `EMBEDDING_PROVIDER` | Embedding backend for RAG, e.g. `ollama` |
+| `VITE_API_BASE_URL` | Frontend's base URL for the backend API (e.g. `http://SERVER-IP:8000`) |
+| `CORS_ORIGINS` | Allowed frontend origin(s) — never `*` |
 
-- **No external AI APIs, ever.** Every model call happens against
-  infrastructure the organization controls.
-- **No secrets in Git.** Configuration is environment-variable driven;
-  `.env` files are gitignored, and `.env.example` files document the shape
-  without real values.
-- **No model weights in Git.** Large binary weight files live on the
-  deployment server's disk under `models/`, excluded via `.gitignore`.
-- **Strict layer separation.** The frontend never talks to a model
-  directly; the backend never renders UI. Each concern (RAG, tools,
-  sandbox, security) owns its own package so segments can land
-  independently without destabilizing what already works.
-- **Agents never name a model.** An agent declares the capabilities it
-  needs; the Model Router picks the best currently-registered match. New
-  local models can be added without touching agent code.
-- **CORS is origin-restricted, never `"*"`.** The backend only accepts
-  requests from the configured frontend origin(s) (`CORS_ORIGINS`).
-- **Mock and real output are never conflated.** Every agent response is
-  labeled with which it is; a "development sandbox" is never described as
-  container-grade isolation; OCR/vision responses say plainly when the
-  underlying capability isn't wired up yet, instead of faking a result.
+## 🚀 Usage
+
+1. Start the backend and frontend as above.
+2. Pick an agent (General, Code, Document, Vision or Data) or let Auto mode's Task Router choose one.
+3. Chat, upload a document for RAG-backed Q&A, or ask for a generated deliverable.
+4. The Model Router picks the best available local model for that agent's declared capabilities.
+5. Download the generated DOCX/XLSX/PDF/Markdown deliverable from the browser client.
+
+`[Screenshot: User Workbench chat interface]`
+
+`[Screenshot: Admin Dashboard]`
+
+## 🔮 Future Improvements
+
+- Wire up a real local vision model for the Vision Agent (currently mock)
+- Real authentication, in place of the current structural foundation
+- Container-backed sandbox for stronger code-execution isolation
+- Real network/system/audit telemetry on the Admin pages (currently frontend mock data)
+
+## 👨‍💻 Author
+
+**Fayaz Ahmed**
+GitHub: [@Fayaz-2007](https://github.com/Fayaz-2007)
+LinkedIn: [fayaz-ahmed-59287631a](https://linkedin.com/in/fayaz-ahmed-59287631a)
+
+<div align="center">
+
+![footer](https://capsule-render.vercel.app/api?type=waving&color=gradient&height=150&section=footer)
+
+</div>
