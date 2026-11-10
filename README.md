@@ -29,13 +29,21 @@ Cloud AI assistants can't be used in environments like refineries, PSUs, defence
 
 ## 🛠️ Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Frontend | ![React](https://img.shields.io/badge/React%2019-20232A?style=flat-square&logo=react&logoColor=61DAFB) ![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat-square&logo=vite&logoColor=white) ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white) ![TailwindCSS](https://img.shields.io/badge/TailwindCSS-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white) |
-| Backend | ![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white) ![Pydantic](https://img.shields.io/badge/Pydantic-E92063?style=flat-square&logo=pydantic&logoColor=white) |
-| Local inference | ![Ollama](https://img.shields.io/badge/Ollama-black?style=flat-square&logo=ollama&logoColor=white) via httpx |
-| RAG / documents | ![ChromaDB](https://img.shields.io/badge/ChromaDB-FF6F00?style=flat-square) pypdf · python-docx · python-pptx · openpyxl · fpdf2 |
-| OCR / Data | pytesseract · Pillow · pandas |
+**Frontend**
+
+![](https://skillicons.dev/icons?i=react,vite,ts,tailwind)
+
+**Backend**
+
+![](https://skillicons.dev/icons?i=fastapi,py)
+
+**Tools**
+
+![](https://skillicons.dev/icons?i=git,github)
+
+**Also using**
+
+![Ollama](https://img.shields.io/badge/Ollama-black?style=for-the-badge&logo=ollama&logoColor=white) ![ChromaDB](https://img.shields.io/badge/ChromaDB-FF6F00?style=for-the-badge) ![Pydantic](https://img.shields.io/badge/Pydantic-E92063?style=for-the-badge&logo=pydantic&logoColor=white)
 
 ## 🏗️ Architecture
 
